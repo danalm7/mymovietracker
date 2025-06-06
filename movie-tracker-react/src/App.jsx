@@ -1,41 +1,41 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import MovieForm from "./MovieForm";
-import MovieList from "./MovieList";
 
 function App() {
-  const [movies, setMovies] = useState(() => {
-    const saved = localStorage.getItem("movies");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem("movies", JSON.stringify(movies));
-  }, [movies]);
-
-  const addMovie = (movie) => {
-    setMovies([...movies, movie]);
-  };
-
-  const toggleWatched = (index) => {
-    const updated = [...movies];
-    updated[index].watched = !updated[index].watched;
-    setMovies(updated);
-  };
-
-  const deleteMovie = (index) => {
-    const updated = movies.filter((_, i) => i !== index);
-    setMovies(updated);
+  const fetchMovies = async (query) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`https://www.omdbapi.com/?apikey=TU_API_KEY&s=${query}`);
+      const data = await res.json();
+      setMovies(data.Search || []);
+    } catch (error) {
+      console.error("Error al buscar películas", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="container">
-      <h1>🎬 Movie Tracker</h1>
-      <MovieForm addMovie={addMovie} />
-      <MovieList
-        movies={movies}
-        toggleWatched={toggleWatched}
-        deleteMovie={deleteMovie}
-      />
+    <div className="app-container">
+      <aside className="sidebar">THE MOVIE TRACKER</aside>
+      <main className="main-content">
+        <MovieForm onSearch={fetchMovies} />
+        {loading ? (
+          <p>Cargando...</p>
+        ) : (
+          <ul>
+            {movies.map((movie) => (
+              <li key={movie.imdbID}>
+                <strong>{movie.Title}</strong> ({movie.Year})<br />
+                <img src={movie.Poster !== "N/A" ? movie.Poster : ""} alt={movie.Title} width="100" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
     </div>
   );
 }
